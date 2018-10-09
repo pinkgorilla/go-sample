@@ -4,11 +4,12 @@ import "github.com/pinkgorilla/go-sample/internal/external/auth"
 
 // Service ...
 type Service struct {
-	auth auth.Service
+	Actor string
+	auth  *auth.Service
 }
 
 // NewService ...
-func NewService(auth auth.Service) *Service {
+func NewService(auth *auth.Service) *Service {
 	service := &Service{
 		auth: auth,
 	}

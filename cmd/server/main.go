@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/pinkgorilla/go-sample/internal/event"
+
 	"github.com/pinkgorilla/go-sample/internal/business"
+	"github.com/pinkgorilla/go-sample/internal/external/auth"
 	"github.com/pinkgorilla/go-sample/internal/external/auth/concrete"
 
 	"github.com/go-chi/chi"
@@ -17,8 +21,12 @@ type Server struct {
 }
 
 // NewServer ...
-func NewServer() *Server {
-	authService := concrete.NewService("http://google.com")
+func NewServer(log func(event event.Event)) *Server {
+	concreteAuthProvider := concrete.NewProvider("http://google.com")
+	authService, err := auth.NewService(concreteAuthProvider)
+	if err != nil {
+		panic(err)
+	}
 	businessService := business.NewService(authService)
 
 	router := chi.NewRouter()
@@ -26,7 +34,7 @@ func NewServer() *Server {
 		Router: router,
 	}
 
-	cbusiness := cbusiness.NewController(businessService)
+	cbusiness := cbusiness.NewController(businessService, log)
 	server.Router.Mount("/", cbusiness.Router)
 	return server
 }
@@ -40,7 +48,18 @@ func (app *Server) Run(addr string) {
 	fmt.Printf("Server runs on port %s\n", addr)
 }
 
+func log(event event.Event) {
+	bytes, err := json.Marshal(event)
+	if err != nil {
+		fmt.Println(err)
+	}
+	json := string(bytes)
+	fmt.Printf("\n%s", json)
+}
+
 func main() {
-	apiServer := NewServer()
+	apiServer := NewServer(log)
+	fmt.Print("running server")
 	apiServer.Run(":9988")
+	fmt.Print("end")
 }

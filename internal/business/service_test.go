@@ -8,11 +8,16 @@ import (
 	"github.com/pinkgorilla/go-sample/internal/external/auth/dummy"
 )
 
-var authService auth.Service
+var dummyAuthProvider auth.Provider
+var authService *auth.Service
 var businessService *business.Service
 
 func init() {
-	authService = dummy.NewService()
+	dummyAuthProvider = dummy.NewProvider()
+	authService, err := auth.NewService(dummyAuthProvider)
+	if err != nil {
+		panic(err)
+	}
 	businessService = business.NewService(authService)
 }
 
