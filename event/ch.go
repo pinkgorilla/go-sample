@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -204,6 +205,9 @@ func (s *ChannelStream) Push(data interface{}) error {
 
 // Pull pulls event data from stream
 func (s *ChannelStream) Pull() (interface{}, error) {
+	if s.closed {
+		return nil, errors.New("stream is already closed")
+	}
 	select {
 	case data := <-s.ch:
 		return data, nil
@@ -228,6 +232,7 @@ func (s *ChannelStream) close() {
 //Store is an interface providing methods for storing and loading data
 type Store interface {
 	Push(data interface{})
+	// Pop removes data from store and returns it to caller
 	Pop() interface{}
 	Dispose()
 }
