@@ -270,7 +270,7 @@ func (m *InMemoryStore) Pop() interface{} {
 
 // Dispose releases resources used by store
 func (m *InMemoryStore) Dispose() {
-	m.m = nil
+	// m.m = nil
 }
 
 // IsEmpty checks if store is empty

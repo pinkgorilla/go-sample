@@ -75,7 +75,7 @@ func Test_Emitter_FailingStream(t *testing.T) {
 	emitter := event.NewManagedEmitter(s, es)
 	listener := event.NewManagedListener(s, ls)
 
-	ctx, _ := context.WithTimeout(context.TODO(), 2*time.Second)
+	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
 
 	go func() {
 		for i := 0; i < 2; i++ {
@@ -116,7 +116,7 @@ func Test_Listener_FailingHandler(t *testing.T) {
 	emitter := event.NewManagedEmitter(s, es)
 	listener := event.NewManagedListener(s, ls)
 
-	ctx, _ := context.WithTimeout(context.TODO(), 2*time.Second)
+	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
 
 	go func() {
 		for i := 0; i < 2; i++ {
