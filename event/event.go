@@ -9,7 +9,7 @@ type Emitter interface {
 
 // Listener wraps emit and listen function
 type Listener interface {
-	Listen(handler ListenerHandler) error
+	Listen(ctx context.Context, handler ListenerHandler) error
 }
 
 // ListenerHandler hander function for event listener
