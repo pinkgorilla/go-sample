@@ -1,13 +1,18 @@
-package event_test
+package managed_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/pinkgorilla/go-sample/event"
+	"github.com/pinkgorilla/go-sample/pkg/event/managed"
 )
 
 // NewFailingStream creates new FailingStream instance
@@ -68,14 +73,15 @@ func (s *FailingStream) Dispose() {
 }
 
 func Test_Emitter_FailingStream(t *testing.T) {
-	ls := event.NewInMemoryStore()
-	es := event.NewInMemoryStore()
+	ls := managed.NewInMemoryStore()
+	es := managed.NewInMemoryStore()
 	s := NewFailingStream()
 
-	emitter := event.NewManagedEmitter(s, es)
-	listener := event.NewManagedListener(s, ls)
+	emitter := managed.NewEmitter(s, es)
+	listener := managed.NewListener(s, ls)
 
-	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.TODO(), 1*time.Second)
+	defer cancel()
 
 	go func() {
 		for i := 0; i < 2; i++ {
@@ -109,14 +115,15 @@ func Test_Emitter_FailingStream(t *testing.T) {
 }
 
 func Test_Listener_FailingHandler(t *testing.T) {
-	ls := event.NewInMemoryStore()
-	es := event.NewInMemoryStore()
-	s := event.NewChannelStream()
+	ls := managed.NewInMemoryStore()
+	es := managed.NewInMemoryStore()
+	s := managed.NewChannelStream()
 
-	emitter := event.NewManagedEmitter(s, es)
-	listener := event.NewManagedListener(s, ls)
+	emitter := managed.NewEmitter(s, es)
+	listener := managed.NewListener(s, ls)
 
-	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.TODO(), 1*time.Second)
+	defer cancel()
 
 	go func() {
 		for i := 0; i < 2; i++ {
@@ -149,7 +156,25 @@ func Test_Listener_FailingHandler(t *testing.T) {
 }
 
 func Test_InMemoryStore(t *testing.T) {
-	store := event.NewInMemoryStore()
+	push := func(i interface{}) (interface{}, error) {
+		return fmt.Sprint(i), nil
+	}
+	pop := func(i interface{}) (interface{}, error) {
+		s, ok := i.(string)
+		if !ok {
+			return nil, fmt.Errorf("Pop failed:%s", "cannot assert interface{} to string")
+		}
+		v, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	}
+	key := func(i interface{}) interface{} {
+		return i
+	}
+	im := managed.NewInMemoryStoreWithFn(push, pop, key)
+	store := im.(*managed.InMemoryStore)
 	// push value to store
 	store.Push(1)
 	// store should not be empty
@@ -157,7 +182,10 @@ func Test_InMemoryStore(t *testing.T) {
 		t.Fatal("isEmpty")
 	}
 	// pop data from store
-	v := store.Pop()
+	v, err := store.Pop()
+	if err != nil {
+		t.Fatal(err)
+	}
 	// if value is not what is pushed should error
 	if v != 1 {
 		t.Fatal("v")
@@ -165,5 +193,36 @@ func Test_InMemoryStore(t *testing.T) {
 	// if poped but it is not empty, should error
 	if !store.IsEmpty() {
 		t.Fatal("isEmpty")
+	}
+	store.Push(1979)
+	store.Push(2088)
+	store.Push(2020)
+	bs, err := ioutil.ReadAll(store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Printf(string(bs))
+
+	buff := bytes.NewBuffer(bs)
+	x := managed.NewInMemoryStoreWithFn(push, pop, key)
+	ns := x.(*managed.InMemoryStore)
+	err = managed.LoadInMemoryStoreWithReader(ns, buff)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	size, err := ns.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size != 3 {
+		t.Fatal("size")
+	}
+	v, err = ns.Pop()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != 1979 {
+		t.Fatal(1979)
 	}
 }

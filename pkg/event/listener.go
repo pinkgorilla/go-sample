@@ -1,11 +1,8 @@
 package event
 
-import "context"
-
-// Emitter wraps emit and listen function
-type Emitter interface {
-	Emit(data interface{}) error
-}
+import (
+	"context"
+)
 
 // Listener wraps emit and listen function
 type Listener interface {
