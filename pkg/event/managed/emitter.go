@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"log"
+	"time"
 )
 
 // DefaultEmitterWatchFunc ...
@@ -13,9 +14,19 @@ var DefaultEmitterWatchFunc = func(ctx context.Context, e *Emitter) {
 			case <-ctx.Done():
 				return
 			default:
+				size, err := e.store.Size()
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				if size == 0 {
+					time.Sleep(10 * time.Second)
+					continue
+				}
 				data, err := e.store.Pop()
 				if err != nil {
 					log.Println(err)
+					continue
 				}
 				if data != nil {
 					err := e.Emit(data)
@@ -23,6 +34,7 @@ var DefaultEmitterWatchFunc = func(ctx context.Context, e *Emitter) {
 						log.Println(err)
 					}
 				}
+
 			}
 		}
 	}()
