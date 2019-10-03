@@ -17,14 +17,23 @@ var DefaultListenerWatchFunc = func(ctx context.Context, l *Listener) {
 			case <-ctx.Done():
 				return
 			default:
+				size, err := l.store.Size()
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				if size == 0 {
+					time.Sleep(10 * time.Second)
+					continue
+				}
 				data, err := l.store.Pop()
 				if err != nil {
 					log.Println(err)
+					continue
 				}
 				if data != nil {
 					l.ch <- data
 				}
-				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
