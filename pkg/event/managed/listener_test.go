@@ -12,7 +12,7 @@ import (
 )
 
 func Test_Listener_FailingHandler(t *testing.T) {
-	n := 100000
+	n := 100
 	ls := managed.NewInMemoryQueue()
 	es := managed.NewInMemoryQueue()
 	s := managed.NewChannelQueue()
@@ -20,7 +20,7 @@ func Test_Listener_FailingHandler(t *testing.T) {
 	emitter := managed.NewEmitter(s, es)
 	listener := managed.NewListener(s, ls)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 25*time.Second)
+	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
 	go func() {
@@ -46,6 +46,19 @@ func Test_Listener_FailingHandler(t *testing.T) {
 		log.Println("handler:", data, ctr, ok)
 		return nil
 	})
+
+	go func() {
+		for {
+			a, _ := ls.Size()
+			b, _ := es.Size()
+			c := s.Size()
+			d := listener.Size()
+			if a == 0 && b == 0 && c == 0 && d == 0 {
+				cancel()
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	// time.Sleep(100 * time.Millisecond)
 	// go listener.Watch(ctx)
 

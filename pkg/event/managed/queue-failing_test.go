@@ -70,3 +70,7 @@ func (s *FailingQueueNewFailingQueue) Pull() (interface{}, error) {
 func (s *FailingQueueNewFailingQueue) Dispose() {
 	// close(s.ch)
 }
+
+func (s *FailingQueueNewFailingQueue) Size() int {
+	return len(s.sequence)
+}

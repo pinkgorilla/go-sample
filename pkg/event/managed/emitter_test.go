@@ -2,7 +2,6 @@ package managed_test
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -18,7 +17,7 @@ func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
 	emitter := managed.NewEmitter(s, es)
 	listener := managed.NewListener(s, ls)
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 20*time.Second)
+	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
 	go func() {
@@ -29,17 +28,26 @@ func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
 
 	go emitter.Watch(ctx)
 
-	// time.Sleep(200 * time.Millisecond)
-	// for i := 0; i < 5; i++ {
-	// 	log.Println(s.Pull())
-	// }
+	time.Sleep(200 * time.Millisecond)
 	go listener.Listen(ctx, func(ctx context.Context, data interface{}) error {
-		log.Println(data)
 		return nil
 	})
 	// time.Sleep(1000 * time.Millisecond)
 	// go listener.Watch(ctx)
 
+	go func() {
+		for {
+			a, _ := ls.Size()
+			b, _ := es.Size()
+			c := s.Size()
+			d := listener.Size()
+			// log.Println(a, b, c, d)
+			if a == 0 && b == 0 && c == 0 && d == 0 {
+				cancel()
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	<-ctx.Done()
 
 	if emitter.Failed() != n {

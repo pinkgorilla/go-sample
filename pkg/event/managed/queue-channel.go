@@ -1,15 +1,13 @@
 package managed
 
 import (
-	"errors"
 	"sync"
 )
 
 // ChannelQueue is Stream implementation using channel
 type ChannelQueue struct {
-	ch     chan interface{}
-	closed bool
-	once   sync.Once
+	ch   chan interface{}
+	once sync.Once
 }
 
 // NewChannelQueue returns ChannelQueue instance
@@ -20,8 +18,7 @@ func NewChannelQueue() *ChannelQueue {
 // NewChannelQueueWithSize returns ChannelQueue instance with specified channel size
 func NewChannelQueueWithSize(size int) *ChannelQueue {
 	return &ChannelQueue{
-		ch:     make(chan interface{}, size),
-		closed: false,
+		ch: make(chan interface{}, size),
 	}
 }
 
@@ -33,21 +30,17 @@ func (s *ChannelQueue) Push(data interface{}) error {
 
 // Pull pulls event data from stream
 func (s *ChannelQueue) Pull() (interface{}, error) {
-	if s.closed {
-		return nil, errors.New("stream is already closed")
-	}
 	return <-s.ch, nil
+}
+
+// Size returns queue size
+func (s *ChannelQueue) Size() int {
+	return len(s.ch)
 }
 
 // Dispose releases resources used by stream
 func (s *ChannelQueue) Dispose() {
-	s.close()
-}
-
-// close closes the stream
-func (s *ChannelQueue) close() {
 	s.once.Do(func() {
-		s.closed = true
 		close(s.ch)
 	})
 }

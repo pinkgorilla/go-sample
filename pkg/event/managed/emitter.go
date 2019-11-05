@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -58,6 +59,7 @@ type Emitter struct {
 	ch      chan Event
 	success int
 	failed  int
+	once    sync.Once
 	// watchFunc func(context.Context, *Emitter)
 }
 
@@ -116,7 +118,9 @@ func (e *Emitter) Store() Queue {
 func (e *Emitter) Dispose() {
 	e.stream.Dispose()
 	e.store.Dispose()
-	close(e.ch)
+	e.once.Do(func() {
+		close(e.ch)
+	})
 }
 
 // Success returns count for success emit

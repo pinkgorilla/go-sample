@@ -2,6 +2,7 @@ package managed
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ func NewListener(stream Queue, store Queue) *Listener {
 	return &Listener{
 		stream: stream,
 		store:  store,
+		ch:     make(chan Event, 10000),
 	}
 }
 
@@ -30,6 +32,8 @@ type Listener struct {
 	failed       int
 	mutex        sync.Mutex
 	storeCounter sync.Map
+	ch           chan Event
+	once         sync.Once
 }
 
 //f is a routine listening for events
@@ -39,7 +43,7 @@ func (e *Listener) count(i *int) {
 	*i++
 }
 
-func (e *Listener) readStream(ctx context.Context, ch chan Event) {
+func (e *Listener) readStream(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -51,17 +55,21 @@ func (e *Listener) readStream(ctx context.Context, ch chan Event) {
 			}
 			if err != nil {
 				e.count(&e.failed)
+				continue
 			}
-			err = e.store.Push(data)
-			if err != nil {
-				e.count(&e.failed)
+			if data != nil {
+				err = e.store.Push(data)
+				if err != nil {
+					log.Println("failed to push data", data, err)
+					e.count(&e.failed)
+					continue
+				}
 			}
-			// ch <- T{data, err}
 		}
 	}
 }
 
-func (e *Listener) readStore(ctx context.Context, ch chan Event) {
+func (e *Listener) readStore(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -71,7 +79,7 @@ func (e *Listener) readStore(ctx context.Context, ch chan Event) {
 			if data == nil && err == nil {
 				continue
 			}
-			ch <- Event{data, err}
+			e.ch <- Event{data, err}
 		}
 	}
 }
@@ -79,16 +87,13 @@ func (e *Listener) readStore(ctx context.Context, ch chan Event) {
 // Listen is a routine listening for events
 // when handler returns error, it will push event data back to store
 func (e *Listener) Listen(ctx context.Context, handler event.ListenerHandler) {
-	c := make(chan Event, 100000)
-	defer close(c)
+	go e.readStore(ctx)
+	go e.readStream(ctx)
 
-	go e.readStore(ctx, c)
-	go e.readStream(ctx, c)
-
-	e.listen(ctx, c, handler)
+	e.listen(ctx, handler)
 }
 
-func (e *Listener) listen(ctx context.Context, ch chan Event, handler event.ListenerHandler) {
+func (e *Listener) listen(ctx context.Context, handler event.ListenerHandler) {
 	wg := sync.WaitGroup{}
 	n := 5
 	for i := 0; i < n; i++ {
@@ -96,29 +101,10 @@ func (e *Listener) listen(ctx context.Context, ch chan Event, handler event.List
 		go func() {
 			for {
 				select {
-				// case stream := <-e.waitQueue():
-				// 	if stream.err != nil {
-				// 		e.count(&e.failed)
-				// 	}
-				// 	err := e.store.Push(stream.data)
-				// 	if err != nil {
-				// 		e.count(&e.failed)
-				// 	}
-				// case store := <-e.waitStore():
-				// 	if store.err != nil {
-				// 		e.count(&e.failed)
-				// 	}
-				// 	err := handler(ctx, store.data)
-				// 	if err != nil {
-				// 		e.count(&e.failed)
-				// 		e.store.Push(store.data)
-				// 	} else {
-				// 		e.count(&e.success)
-				// 	}
 				case <-ctx.Done():
 					wg.Done()
 					return
-				case store := <-ch:
+				case store := <-e.ch:
 					if store.err != nil {
 						e.count(&e.failed)
 					}
@@ -138,13 +124,6 @@ func (e *Listener) listen(ctx context.Context, ch chan Event, handler event.List
 	wg.Wait()
 }
 
-// func (e *Listener) Debug() {
-// 	e.storeCounter.Range(func(k, v interface{}) bool {
-// 		log.Println("store counter - key:", k, ", counter:", v)
-// 		return true
-// 	})
-// }
-
 // Store ...
 func (e *Listener) Store() Queue {
 	return e.store
@@ -154,6 +133,9 @@ func (e *Listener) Store() Queue {
 func (e *Listener) Dispose() {
 	e.stream.Dispose()
 	e.store.Dispose()
+	e.once.Do(func() {
+		close(e.ch)
+	})
 }
 
 // Success returns count for success emit
@@ -164,4 +146,9 @@ func (e *Listener) Success() int {
 // Failed returns count for failed emit
 func (e *Listener) Failed() int {
 	return e.failed
+}
+
+// Size returns listener size
+func (e *Listener) Size() int {
+	return len(e.ch)
 }
