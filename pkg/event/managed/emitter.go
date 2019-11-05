@@ -17,6 +17,7 @@ var DefaultEmitterWatchFunc = func(ctx context.Context, e *Emitter) {
 				data, err := e.store.Pull()
 				if err != nil {
 					log.Println(err)
+					continue
 				}
 				if data != nil {
 					err := e.Emit(data)
@@ -24,6 +25,7 @@ var DefaultEmitterWatchFunc = func(ctx context.Context, e *Emitter) {
 						log.Println(err)
 					}
 				}
+
 			}
 		}
 	}()
