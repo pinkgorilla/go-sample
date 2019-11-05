@@ -3,6 +3,7 @@ package managed
 import (
 	"context"
 	"log"
+	"time"
 )
 
 // DefaultEmitterWatchFunc ...
@@ -13,7 +14,7 @@ var DefaultEmitterWatchFunc = func(ctx context.Context, e *Emitter) {
 			case <-ctx.Done():
 				return
 			default:
-				data, err := e.store.Pop()
+				data, err := e.store.Pull()
 				if err != nil {
 					log.Println(err)
 				}
@@ -29,26 +30,33 @@ var DefaultEmitterWatchFunc = func(ctx context.Context, e *Emitter) {
 }
 
 //NewEmitter return new managed event listener
-func NewEmitter(stream Stream, store Store) *Emitter {
-	return NewEmitterWithWatchFunc(stream, store, DefaultEmitterWatchFunc)
-}
-
-//NewEmitterWithWatchFunc return new managed event listener with watchFunc
-func NewEmitterWithWatchFunc(stream Stream, store Store, watch func(context.Context, *Emitter)) *Emitter {
+func NewEmitter(stream Queue, store Queue) *Emitter {
+	// return NewEmitterWithWatchFunc(stream, store, DefaultEmitterWatchFunc)
 	return &Emitter{
-		stream:    stream,
-		store:     store,
-		watchFunc: watch,
+		stream: stream,
+		store:  store,
+		ch:     make(chan Event, 9999),
 	}
 }
 
+//NewEmitterWithWatchFunc return new managed event listener with watchFunc
+// func NewEmitterWithWatchFunc(stream Queue, store Store, watch func(context.Context, *Emitter)) *Emitter {
+// 	return &Emitter{
+// 		stream:    stream,
+// 		store:     store,
+// 		ch:        make(chan T, 9999),
+// 		watchFunc: watch,
+// 	}
+// }
+
 //Emitter is managed event emitter
 type Emitter struct {
-	stream    Stream
-	store     Store
-	success   int
-	failed    int
-	watchFunc func(context.Context, *Emitter)
+	stream  Queue
+	store   Queue // used as storage of failed emit operation, Watch method will Pop this store and try to emit again
+	ch      chan Event
+	success int
+	failed  int
+	// watchFunc func(context.Context, *Emitter)
 }
 
 //Emit emits data
@@ -63,15 +71,50 @@ func (e *Emitter) Emit(data interface{}) error {
 	return nil
 }
 
+func (e *Emitter) waitStore() <-chan Event {
+	go func() {
+		data, err := e.store.Pull()
+		if data == nil && err == nil {
+			return
+		}
+		e.ch <- Event{data, err}
+	}()
+	return e.ch
+}
+
 //Watch is a routine ensures data is emited
 func (e *Emitter) Watch(ctx context.Context) {
-	e.watchFunc(ctx, e)
+	for {
+		select {
+		case store := <-e.waitStore():
+			if store.err != nil {
+				log.Println(store.err)
+			}
+			if store.data != nil {
+				err := e.Emit(store.data)
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	// e.watchFunc(ctx, e)
+}
+
+// Store ...
+func (e *Emitter) Store() Queue {
+	return e.store
 }
 
 //Dispose release resources used by emitter
 func (e *Emitter) Dispose() {
 	e.stream.Dispose()
 	e.store.Dispose()
+	close(e.ch)
 }
 
 // Success returns count for success emit
