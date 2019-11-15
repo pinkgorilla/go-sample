@@ -2,12 +2,12 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"sync"
 
-	"github.com/pinkgorilla/go-sample/pkg/metrics"
-
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 // Job ...
@@ -17,20 +17,21 @@ type Job interface {
 
 // Agent ...
 type Agent struct {
-	server  http.Server
-	router  *chi.Mux
-	jobs    []Job
-	ctx     context.Context
-	cancel  context.CancelFunc
-	state   interface{} // state holds agent state, agent state is provided by
-	smu     sync.Mutex  // a mutex for state
-	Metrics metrics.Metrics
+	server http.Server
+	router *chi.Mux
+	jobs   []Job
+	ctx    context.Context
+	cancel context.CancelFunc
+	state  interface{} // state holds agent state, agent state is provided by
+	smu    sync.Mutex  // a mutex for state
 }
 
 // NewAgent returns new agent instance
 func NewAgent(ctx context.Context) *Agent {
 	cctx, cancel := context.WithCancel(ctx)
 	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
 	agent := &Agent{
 		ctx:    cctx,
 		cancel: cancel,
@@ -44,7 +45,7 @@ func NewAgent(ctx context.Context) *Agent {
 }
 
 // AddHTTPHandler ...
-func (a *Agent) AddHTTPHandler(method, pattern string, hfn http.HandlerFunc) *Agent {
+func (a *Agent) AddHTTPHandler(method, pattern string, hfn http.Handler) *Agent {
 	a.router.Method(method, pattern, hfn)
 	return a
 }
@@ -90,4 +91,11 @@ func (a *Agent) startJobs() {
 		job := a.jobs[i]
 		go job.Run(a.ctx, a)
 	}
+}
+
+// StateHandler is http handler for agent state
+func (a *Agent) StateHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(a.GetState())
+	})
 }
