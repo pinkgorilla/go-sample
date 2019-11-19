@@ -27,9 +27,9 @@ func (m *StaticAPIKeyValidator) Validate(w http.ResponseWriter, r *http.Request)
 		return nil, errors.NewAuthError("unauthorized")
 	}
 	return &auth.Identity{
-		ID:   0,
+		ID:   "shared",
 		Type: "static-key",
-		Name: "static-key",
+		Name: "static",
 	}, nil
 }
 

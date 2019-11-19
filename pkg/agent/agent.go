@@ -10,6 +10,26 @@ import (
 	"github.com/go-chi/chi/middleware"
 )
 
+// StateManager manages state
+type StateManager struct {
+	state interface{}
+	mu    sync.Mutex
+}
+
+// Get gets state value
+func (s *StateManager) Get() interface{} {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.state
+}
+
+// Set sets state value
+func (s *StateManager) Set(state interface{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.state = state
+}
+
 // Job ...
 type Job interface {
 	Run(context.Context, *Agent)
@@ -22,8 +42,7 @@ type Agent struct {
 	jobs   []Job
 	ctx    context.Context
 	cancel context.CancelFunc
-	state  interface{} // state holds agent state, agent state is provided by
-	smu    sync.Mutex  // a mutex for state
+	state  *StateManager
 }
 
 // NewAgent returns new agent instance
@@ -38,6 +57,7 @@ func NewAgent(ctx context.Context) *Agent {
 		server: http.Server{
 			Handler: router,
 		},
+		state:  &StateManager{},
 		router: router,
 		jobs:   []Job{},
 	}
@@ -64,14 +84,12 @@ func (a *Agent) Stop() error {
 
 // GetState returns agent state if any
 func (a *Agent) GetState() interface{} {
-	return a.state
+	return a.state.Get()
 }
 
 // SetState sets agent state to s
 func (a *Agent) SetState(s interface{}) {
-	a.smu.Lock()
-	defer a.smu.Unlock()
-	a.state = s
+	a.state.Set(s)
 }
 
 // Serve ...

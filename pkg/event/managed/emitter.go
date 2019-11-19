@@ -38,7 +38,7 @@ func NewEmitter(stream Queue, store Queue) *Emitter {
 	return &Emitter{
 		stream: stream,
 		store:  store,
-		ch:     make(chan Event, 9999),
+		// ch:     make(chan Event, 9999),
 	}
 }
 
@@ -56,11 +56,9 @@ func NewEmitter(stream Queue, store Queue) *Emitter {
 type Emitter struct {
 	stream  Queue
 	store   Queue // used as storage of failed emit operation, Watch method will Pop this store and try to emit again
-	ch      chan Event
 	success int
 	failed  int
 	once    sync.Once
-	// watchFunc func(context.Context, *Emitter)
 }
 
 //Emit emits data
@@ -75,22 +73,34 @@ func (e *Emitter) Emit(data interface{}) error {
 	return nil
 }
 
-func (e *Emitter) waitStore() <-chan Event {
+func (e *Emitter) readStore(ctx context.Context) <-chan Event {
+	ch := make(chan Event, 1)
 	go func() {
-		data, err := e.store.Pull()
-		if data == nil && err == nil {
-			return
-		}
-		e.ch <- Event{data, err}
+		go func() {
+			for {
+				data, err := e.store.Pull()
+				if data == nil && err == nil {
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
+				ch <- Event{data, err}
+			}
+		}()
+		<-ctx.Done()
+		close(ch)
+		return
 	}()
-	return e.ch
+	return ch
 }
 
 //Watch is a routine ensures data is emited
 func (e *Emitter) Watch(ctx context.Context) {
+	ch := e.readStore(ctx)
 	for {
 		select {
-		case store := <-e.waitStore():
+		case <-ctx.Done():
+			return
+		case store := <-ch:
 			if store.err != nil {
 				log.Println(store.err)
 			}
@@ -100,13 +110,8 @@ func (e *Emitter) Watch(ctx context.Context) {
 					log.Println(err)
 				}
 			}
-		case <-ctx.Done():
-			return
-		default:
-			time.Sleep(100 * time.Millisecond)
 		}
 	}
-	// e.watchFunc(ctx, e)
 }
 
 // Store ...
@@ -118,17 +123,14 @@ func (e *Emitter) Store() Queue {
 func (e *Emitter) Dispose() {
 	e.stream.Dispose()
 	e.store.Dispose()
-	e.once.Do(func() {
-		close(e.ch)
-	})
 }
 
 // Success returns count for success emit
-func (e Emitter) Success() int {
+func (e *Emitter) Success() int {
 	return e.success
 }
 
 // Failed returns count for failed emit
-func (e Emitter) Failed() int {
+func (e *Emitter) Failed() int {
 	return e.failed
 }

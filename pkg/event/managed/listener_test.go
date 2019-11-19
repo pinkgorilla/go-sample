@@ -12,7 +12,7 @@ import (
 )
 
 func Test_Listener_FailingHandler(t *testing.T) {
-	n := 100
+	n := 10
 	ls := managed.NewInMemoryQueue()
 	es := managed.NewInMemoryQueue()
 	s := managed.NewChannelQueue()
@@ -52,8 +52,7 @@ func Test_Listener_FailingHandler(t *testing.T) {
 			a, _ := ls.Size()
 			b, _ := es.Size()
 			c := s.Size()
-			d := listener.Size()
-			if a == 0 && b == 0 && c == 0 && d == 0 {
+			if a == 0 && b == 0 && c == 0 {
 				cancel()
 			}
 			time.Sleep(1 * time.Second)

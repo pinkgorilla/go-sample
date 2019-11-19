@@ -2,6 +2,7 @@ package managed_test
 
 import (
 	"context"
+	"log"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
-	n := 100
+	n := 10
 	ls := managed.NewInMemoryQueue()
 	es := managed.NewInMemoryQueue()
 	s := NewFailingQueue()
@@ -40,9 +41,9 @@ func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
 			a, _ := ls.Size()
 			b, _ := es.Size()
 			c := s.Size()
-			d := listener.Size()
+			// d := listener.Size()
 			// log.Println(a, b, c, d)
-			if a == 0 && b == 0 && c == 0 && d == 0 {
+			if a == 0 && b == 0 && c == 0 {
 				cancel()
 			}
 			time.Sleep(1 * time.Second)
@@ -64,4 +65,21 @@ func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
 	}
 	listener.Dispose()
 	emitter.Dispose()
+}
+
+func Test_Ch(t *testing.T) {
+	ch := make(chan int, 1)
+	ctr1 := 0
+	ctr2 := 0
+	ch <- 11
+	go func() {
+		for ctr1 < 10 {
+			ctr1++
+			ch <- ctr1
+		}
+	}()
+	for ctr2 < 10 {
+		log.Println(<-ch)
+		ctr2++
+	}
 }

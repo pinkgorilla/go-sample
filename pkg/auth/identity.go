@@ -2,7 +2,7 @@ package auth
 
 import "context"
 
-// Identity represents the api caller
+// Identity is authenticated identity
 type Identity struct {
 	Type string
 	ID   interface{}
@@ -22,7 +22,7 @@ type k string
 
 const key = k("auth")
 
-// FromContext get app from context
+// FromContext returns identity from context
 func FromContext(ctx context.Context) *Identity {
 	id, ok := ctx.Value(key).(*Identity)
 	if !ok {
@@ -31,7 +31,7 @@ func FromContext(ctx context.Context) *Identity {
 	return id
 }
 
-// ToContext put app to context
+// ToContext put identity to context
 func ToContext(ctx context.Context, id *Identity) context.Context {
 	return context.WithValue(ctx, key, id)
 }

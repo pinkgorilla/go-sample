@@ -4,8 +4,8 @@ package alert
 //
 // The implementation channel can be slack/email/etc.
 type Alert interface {
-	Error(err error)
-	Alert(message Message)
+	Error(err error) error
+	Alert(message Message) error
 }
 
 // Message is the message type used for alert
