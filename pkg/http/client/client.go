@@ -49,13 +49,9 @@ func NewClient(config *ClientConfig) *Client {
 
 // Do executes request
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	copyRequest := c.makeRequestCopier(req)
+
 	var res *http.Response
-	var err error
-	var peeker *bufio.Reader
-	// cleanUp := func() {
-	// 	req.Body.Close()
-	// }
-	// defer cleanUp()
 
 	attempt := 1
 	limit := c.config.MaxRequestAttempt
@@ -63,26 +59,18 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		limit = 1
 	}
 
-	if req.ContentLength > 0 {
-		source, err := req.GetBody()
+	for {
+		r2, err := copyRequest()
 		if err != nil {
 			return nil, err
 		}
-		peeker = bufio.NewReader(source)
-	}
 
-	for {
 		if attempt > limit {
 			return res, err
 		}
 		attempt++
 
-		if req.ContentLength > 0 {
-			bs, _ := peeker.Peek(peeker.Size())
-			req.Body = ioutil.NopCloser(bytes.NewReader(bs))
-		}
-
-		res, err = c.http.Do(req)
+		res, err = c.http.Do(r2)
 		if err != nil {
 			return res, err
 		}
@@ -98,5 +86,34 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 			continue
 		}
 		return res, err
+	}
+}
+
+func (c *Client) makeRequestCopier(req *http.Request) func() (*http.Request, error) {
+	var bs []byte
+	if req.ContentLength > 0 {
+		source, err := req.GetBody()
+		if err != nil {
+			return func() (*http.Request, error) { return nil, err }
+		}
+		peeker := bufio.NewReader(source)
+		bs, _ = peeker.Peek(peeker.Size())
+	}
+	h := req.Header
+
+	return func() (*http.Request, error) {
+		r, e := http.NewRequest(req.Method, req.URL.String(), nil)
+		if e != nil {
+			return nil, e
+		}
+		r.Body = ioutil.NopCloser(bytes.NewReader(bs))
+		h2 := make(http.Header, len(h))
+		for k, vv := range h {
+			vv2 := make([]string, len(vv))
+			copy(vv2, vv)
+			h2[k] = vv2
+		}
+		r.Header = h2
+		return r, nil
 	}
 }
