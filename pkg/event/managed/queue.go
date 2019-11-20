@@ -6,3 +6,9 @@ type Queue interface {
 	Pull() (interface{}, error)
 	Dispose()
 }
+
+// Size interface for types with size
+type Size interface {
+	// Size returns the size of implementing type
+	Size() int
+}
