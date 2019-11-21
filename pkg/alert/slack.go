@@ -21,7 +21,7 @@ type SlackResponse struct {
 	Ok        bool                   `json:"ok"`
 	Error     string                 `json:"error"`
 	Channel   string                 `json:"channel"`
-	Timestamp float64                `json:"ts"`
+	Timestamp string                 `json:"ts"`
 	Message   map[string]interface{} `json:"message"`
 }
 
