@@ -6,7 +6,7 @@ import (
 
 // Listener wraps emit and listen function
 type Listener interface {
-	Listen(ctx context.Context, handler ListenerHandler) error
+	Listen(ctx context.Context, handler ListenerHandler)
 }
 
 // ListenerHandler hander function for event listener

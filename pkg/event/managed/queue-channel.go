@@ -34,8 +34,8 @@ func (s *ChannelQueue) Pull() (interface{}, error) {
 }
 
 // Size returns queue size
-func (s *ChannelQueue) Size() int {
-	return len(s.ch)
+func (s *ChannelQueue) Size() (int, error) {
+	return len(s.ch), nil
 }
 
 // Dispose releases resources used by stream
