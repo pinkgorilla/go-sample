@@ -1,8 +1,9 @@
 package middlewares
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 
@@ -13,8 +14,9 @@ import (
 // returns a HTTP 500 (Internal Server Error) status if possible.
 func Recoverer(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		peeker := bufio.NewReader(r.Body)
-		bs, _ := peeker.Peek(peeker.Size())
+		buf, _ := ioutil.ReadAll(r.Body)
+		bs, _ := ioutil.ReadAll(ioutil.NopCloser(bytes.NewBuffer(buf)))
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 		defer func() {
 			if rvr := recover(); rvr != nil {
 				r.ParseForm()
