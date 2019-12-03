@@ -11,10 +11,10 @@ require (
 	github.com/onsi/ginkgo v1.10.3 // indirect
 	github.com/onsi/gomega v1.7.1 // indirect
 	github.com/prometheus/client_golang v1.2.1
-	github.com/ramya-rao-a/go-outline v0.0.0-20181122025142-7182a932836a // indirect
 	github.com/satori/go.uuid v1.2.0
-	github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518 // indirect
+	github.com/toolkits/cron v0.0.0-20150624115642-bebc2953afa6
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/api v0.14.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
+	gopkg.in/yaml.v2 v2.2.4
 )

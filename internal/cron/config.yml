@@ -1,0 +1,9 @@
+apicalls:
+  - name: sample-1
+    uri: http://example.com/sample-1
+    key: sample-key
+    schedule: '* * * * * *'
+  - name: sample-2
+    uri: http://example.com/sample-2
+    key: sample-key
+    schedule: '* * * * * *'
