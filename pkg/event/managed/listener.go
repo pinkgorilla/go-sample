@@ -48,16 +48,16 @@ func (e *Listener) readStream(ctx context.Context) <-chan interface{} {
 			for {
 				data, err := e.stream.Pull()
 				if data == nil && err == nil {
-					time.Sleep(100 * time.Millisecond)
+					<-time.After(100 * time.Millisecond)
 					continue
 				}
 				if err != nil {
 					e.count(&e.failed)
-					time.Sleep(100 * time.Millisecond)
+					<-time.After(100 * time.Millisecond)
 					continue
 				}
 				if data == nil {
-					time.Sleep(100 * time.Millisecond)
+					<-time.After(100 * time.Millisecond)
 					continue
 				}
 				ch <- data
@@ -78,7 +78,7 @@ func (e *Listener) readStore(ctx context.Context) <-chan Event {
 				// log.Println(e.store)
 				data, err := e.store.Pull()
 				if data == nil && err == nil {
-					time.Sleep(100 * time.Millisecond)
+					<-time.After(100 * time.Millisecond)
 					continue
 				}
 				ch <- Event{data, err}

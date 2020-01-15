@@ -30,7 +30,7 @@ func Test_Listener_FailingHandler(t *testing.T) {
 	}()
 	go emitter.Watch(ctx)
 
-	time.Sleep(200 * time.Millisecond)
+	<-time.After(200 * time.Millisecond)
 	registered := sync.Map{}
 	go listener.Listen(ctx, func(ctx context.Context, data interface{}) error {
 		ctr := 0
@@ -51,14 +51,14 @@ func Test_Listener_FailingHandler(t *testing.T) {
 		for {
 			a, _ := ls.Size()
 			b, _ := es.Size()
-			c := s.Size()
+			c, _ := s.Size()
 			if a == 0 && b == 0 && c == 0 {
 				cancel()
 			}
-			time.Sleep(1 * time.Second)
+			<-time.After(1 * time.Second)
 		}
 	}()
-	// time.Sleep(100 * time.Millisecond)
+	// <-time.After(100 * time.Millisecond)
 	// go listener.Watch(ctx)
 
 	<-ctx.Done()

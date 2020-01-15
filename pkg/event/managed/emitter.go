@@ -80,7 +80,7 @@ func (e *Emitter) readStore(ctx context.Context) <-chan Event {
 			for {
 				data, err := e.store.Pull()
 				if data == nil && err == nil {
-					time.Sleep(100 * time.Millisecond)
+					<-time.After(100 * time.Millisecond)
 					continue
 				}
 				ch <- Event{data, err}

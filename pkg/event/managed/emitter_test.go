@@ -29,11 +29,11 @@ func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
 
 	go emitter.Watch(ctx)
 
-	time.Sleep(200 * time.Millisecond)
+	<-time.After(200 * time.Millisecond)
 	go listener.Listen(ctx, func(ctx context.Context, data interface{}) error {
 		return nil
 	})
-	// time.Sleep(1000 * time.Millisecond)
+	// <-time.After(1000 * time.Millisecond)
 	// go listener.Watch(ctx)
 
 	go func() {
@@ -46,7 +46,7 @@ func Test_Emitter_FailingQueueNewFailingQueue(t *testing.T) {
 			if a == 0 && b == 0 && c == 0 {
 				cancel()
 			}
-			time.Sleep(1 * time.Second)
+			<-time.After(1 * time.Second)
 		}
 	}()
 	<-ctx.Done()

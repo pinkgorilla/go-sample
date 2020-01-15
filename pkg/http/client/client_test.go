@@ -32,7 +32,7 @@ func newResponse(attempt int, result interface{}, successCode, errorCode int, de
 }
 func (s *response) handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(s.ResponseDelay)
+		<-time.After(s.ResponseDelay)
 		if s.attempt >= s.ResponseSuccessOnNthAttempt {
 			w.WriteHeader(s.ResponseSuccessStatusCode)
 			json.NewEncoder(w).Encode(s.ResponseData)

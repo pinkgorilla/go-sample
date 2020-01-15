@@ -61,7 +61,7 @@ func Test_Circuit_TresholdLimit(t *testing.T) {
 	if cb.State() != circuit.StateClosed {
 		t.Fatalf("expected closed state, got %s", cb.State())
 	}
-	err = cb.Invoke(ctx, func() error { time.Sleep(150 * time.Millisecond); return nil })
+	err = cb.Invoke(ctx, func() error { <-time.After(150 * time.Millisecond); return nil })
 	if err != circuit.ErrCircuitInvocationTimeoutExceeded {
 		t.Fatal(err)
 	}

@@ -82,7 +82,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 				}
 			}
 			d := time.Duration(math.Pow(2, float64(attempt))) * time.Millisecond
-			time.Sleep(c.config.MinRequestAttemptDelay + d)
+			<-time.After(c.config.MinRequestAttemptDelay + d)
 			continue
 		}
 		return res, err
