@@ -20,7 +20,6 @@ import "testing"
 // - Reuse the object creation algorithm between many objects
 //
 // ## Example - vehicle manufacturing
-
 // The Builder design pattern has been commonly described as the relationship between a director, a few Builders, and the product they build.
 // Continuing with our example of the car, we'll create a vehicle Builder.
 // The process (widely described as the algorithm) of creating a vehicle (the product) is more or less the same for every kind of vehicle
@@ -28,6 +27,14 @@ import "testing"
 // If you think about it, you could build a car and a motorbike (two Builders) with this description,
 // so we are reusing the description to create cars in manufacturing.
 // The director is represented by the ManufacturingDirector type in our example.
+
+// ### Requirements and acceptance criteria
+// As far as we have described, we must dispose of a Builder of type Car and Motorbike and a unique director called ManufacturingDirector to take builders and construct products.
+// So the requirements for a Vehicle builder example would be the following:
+// - I must have a manufacturing type that constructs everything that a vehicle needs
+// - When using a car builder, the VehicleProduct with four wheels, five seats, and a structure defined as Car must be returned
+// - When using a motorbike builder, the VehicleProduct with two wheels, two seats, and a structure defined as Motorbike must be returned
+// - A VehicleProduct built by any BuildProcess builder must be open to modifications
 
 type BuildProcess interface {
 	SetWheels() BuildProcess
